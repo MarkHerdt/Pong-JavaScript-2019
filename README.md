@@ -1,2 +1,2 @@
 School Project in JavaScript
-Programmed this in mid/late 2020
+Programmed this in late 2019
