@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="de_De, en_US">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Mark Herdt">
+        <meta name="description" content="Welcome to my website, i'm an aspiring game developer and am currently studying game programming at the school of games in cologne.">
+        <title>Pong</title>
+        <!-- Doesn't work on Edge if not hosted on a server -->
+        <link rel="icon" type="image/png" href="https://i.imgur.com/hMRLuCJ.png">
+        <!-- Needs to be ".ico" for Firefox -->
+        <link rel="icon" type="image/icon" href="images/logo.ico">
+        <style>
+            body{
+                margin: 0;
+                overflow: hidden; /* Needed to hide scrollbars when the ".collision" animation gets called */
+                font-family: sans-serif;
+                color: white;
+            }
+            canvas{
+                position: relative;
+                z-index: 0; /* Needed, so the canvas is on top of the UI */
+            }
+            /* Container for background */
+            #body{
+                width: 100vw;
+                height: 100vh;
+                margin: 0;
+                background: rgba(0, 0, 0, .9375);
+            }
+            /* Displayed once, when the page is loaded */
+            #startScreen{
+                width: 50%;
+                height: 37.5%;
+                position: absolute;
+                top: 10%;
+                left: 50%;
+                transform: translateX(-50%);
+                -webkit-transform: translateX(-50%);
+                -ms-transform: translateX(-50%);
+                display: flex;
+                display: -webkit-box;
+                display: -ms-flexbox;
+                justify-content: center;
+                -webkit-box-pack: center;
+                -ms-flex-pack: center;
+                align-items: center;
+                -webkit-box-align: center;
+                -ms-flex-align: center;
+                font-size: 750%;
+            }
+            /* Container to display the respective scores */
+            .score{
+                width: 10%;
+                height: 5%;
+                position: absolute;
+                border: 1px solid rgba(255, 255, 255, .5);
+                border-bottom-left-radius: 5%;
+                border-bottom-right-radius: 5%;
+                box-shadow: 0 1.25px 10px 2.5px rgba(255, 255, 255, .25);
+                -webkit-box-shadow: 0 1.25px 10px 2.5px rgba(255, 255, 255, .25);
+                -moz-box-shadow: 0 1.25px 10px 2.5px rgba(255, 255, 255, .25);
+                display: flex;
+                display: -webkit-box;
+                display: -ms-flexbox;
+                justify-content: center;
+                -webkit-box-pack: center;
+                -ms-flex-pack: center;
+                align-items: center;
+                -webkit-box-align: center;
+                -ms-flex-align: center;
+                overflow: hidden;
+                font-size: 250%;
+            }
+            /* Animation for the "#body" when the player scored a goal */
+            .playerAnimation{
+                animation: player .5s linear;
+                -webkit-animation: player .5s linear;
+            }
+            @keyframes player {
+                0%{
+                    background: rgba(0, 0, 0, .9375);
+                }
+                50%{
+                    background-color: rgba(0, 0, 225, .75);
+                }
+                100%{
+                    background: rgba(0, 0, 0, .9375);
+                }
+            }
+            @-webkit-keyframes player {
+                0%{
+                    background: rgba(0, 0, 0, .9375);
+                }
+                50%{
+                    background-color: rgba(0, 0, 225, .75);
+                }
+                100%{
+                    background: rgba(0, 0, 0, .9375);
+                }
+            }
+            /* Animation for the "#body" when the bot scored a goal */
+            .botAnimation{
+                animation: bot .5s linear;
+                -webkit-animation: bot .5s linear;
+            }
+            @keyframes bot {
+                0% {
+                    background: rgba(0, 0, 0, .9375);
+                }
+                50% {
+                    background-color: rgba(225, 0, 0, .75);
+                }
+                100% {
+                    background: rgba(0, 0, 0, .9375);
+                }
+            }
+            @-webkit-keyframes bot {
+                0% {
+                    background: rgba(0, 0, 0, .9375);
+                }
+                50% {
+                    background-color: rgba(225, 0, 0, .75);
+                }
+                100% {
+                    background: rgba(0, 0, 0, .9375);
+                }
+            }
+            /* Container for slider */
+            #settings {
+                min-width: max-content;
+                min-width: -webkit-max-content;
+                min-width: -moz-max-content;
+                height: max-content;
+                position: absolute;
+                left: 50%;
+                bottom: 0;
+                transform: translateX(-50%);
+                /*
+                -webkit-transform: translateX(-50%);
+                -ms-transform: translateX(-50%);
+                */
+                border: 1px solid rgba(255, 255, 255, .125);
+                border-bottom: 0;
+                border-top-left-radius: 5%;
+                border-top-right-radius: 5%;
+                box-shadow: 0 1.25px 10px 2.5px rgba(255, 255, 255, .125);
+                -webkit-box-shadow: 0 1.25px 10px 2.5px rgba(255, 255, 255, .125);
+                -moz-box-shadow: 0 1.25px 10px 2.5px rgba(255, 255, 255, .125);
+                padding: 5px;
+                display: flex;
+                display: -ms-flexbox;
+                text-align: center;
+                align-items: center;
+                -webkit-box-align: center;
+                -ms-flex-align: center;
+                background: linear-gradient(to right, rgba(0, 0, 0, .0625), rgba(128, 128, 128, .375), rgba(0, 0, 0, .0625));
+                background: -webkit-gradient(linear, left top, right top, from(rgba(0, 0, 0, .0625)), color-stop(rgba(128, 128, 128, .375)), to(rgba(0, 0, 0, .0625)));
+                background: -o-linear-gradient(left, rgba(0, 0, 0, .0625), rgba(128, 128, 128, .375), rgba(0, 0, 0, .0625));
+                z-index: 100;
+            }
+            /* Volume icon */
+            #volume{
+                width: 2.5em;
+                height: auto;
+                position: relative;
+                left: 25%;
+                cursor: pointer;
+            }
+            /* X icon */
+            #x{
+                width: 2.5em;
+                height: auto;
+                position: relative;
+                left: -25%;
+                visibility: hidden;
+                cursor: pointer;
+            }
+        </style>
+    </head>
+    <body onresize="resizeCanvas()">
+    <audio id="pongSound"><source src="sound/pongSound.mp3" type="audio/mp3"></audio>
+    <audio id="goalPlayer"><source src="sound/goal_Player.mp3" type="audio/mp3"></audio>
+    <audio id="goalBot"><source src="sound/goal_Bot.mp3" type="audio/mp3"></audio>
+        <!-- Container for background -->
+        <section id="body">
+            <!-- Displayed once, when the page is loaded -->
+            <div id="startScreen"><b>Click the Screen <br> to start the game</b></div>
+            <!-- Score of player -->
+            <div id="scoreBot" class="score" style="left: 12.5%; background-color: red"></div>
+            <!-- Score of bot -->
+            <div id="scorePlayer" class="score" style="right: 12.5%; background-color: blue"></div>
+            <canvas id="canvas"></canvas>
+            <!-- Container for slider -->
+            <div id="settings">
+                <table>
+                    <tr title="Speed is set after the ball respawns">
+                        <td >Ball Speed</td>
+                        <td><input type="range" min="1" max="5" step="1" value="1" id="ballSpeed"></td>
+                        <td style="width: 2em"><span id="ballSpeedValue"></span></td>
+                    </tr>
+                    <tr title="Movement speed of bot">
+                        <td>Bot Speed</td>
+                        <td><input type="range" min="0" max="5" step="0.5" value="2.5" id="botSpeed"></td>
+                        <td style="width: 2em"><span id="botSpeedValue"></span></td>
+                    </tr>
+                    <tr title="Angle the bot hits the ball">
+                        <td>Difficulty</td>
+                        <td><input type="range" min="0" max="10" step="1" value="0" id="difficulty"></td>
+                        <td style="width: 2em"><span id="difficultyValue"></span></td>
+                    </tr>
+                </table>
+                <table id="img_Table">
+                    <tr>
+                        <td title="Sound on/off">
+                            <img id="volume" src="images/volumeIcon.png">
+                            <img id="x" src="images/redX.svg">
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <script type="text/javascript">
+                var canvas, context;
+                canvas = document.getElementById("canvas");
+                context = canvas.getContext("2d");
+                var bot, player;
+                bot = document.getElementById("scoreBot");
+                player = document.getElementById("scorePlayer");
+                // Score to start with
+                var scoreBot = 0;
+                var scorePlayer = 0;
+
+                var isPlaying = false; // Starts the game when set to "true"
+                var volume = true;
+                var isMovingSlider_BotSpeed = false; // Needed so the slider function to set the difficulty, is fired only once on change
+                var isMovingSlider_BallSpeed = false; // Needed so the slider function to set the ball speed, is fired only once on change
+
+                var ballRadius;
+                var ballRadiusValue = .000005; // Radius of ball
+                // Min: 2.25 | Max: 5.25
+                var ballSpeed = 2.25; // Speed the ball moves with
+                var ballSpeedX;
+                var ballSpeedY;
+                var ballX;
+                var ballY;
+
+                var paddleWidth;
+                var paddleWidthValue = .01; // Width of paddles
+                var paddleHeight;
+                var paddleHeightValue = .125; // Height of paddles
+                var paddleMargin = .01; // Margin the paddles have from the wall
+
+                var paddleLeftX;
+                var paddleLeftY;
+                // Min: 0 | Max: 5
+                var speed = 2.5; // Speed the bot follows the ball with (higher number == higher difficulty)
+                // Min: 2.5 | Max: 7.5
+                var angle = 2.5; // Angle the bot hits the ball with (lower number == higher difficulty)
+
+                var paddleRightX;
+                var paddleRightY;
+
+                // Moves the right paddle to the vertical position of the mouse
+                function getMousePosition(evt) {
+                    var rect = canvas.getBoundingClientRect(); // Position of canvas relative to the viewport
+                    var root = document.documentElement; // Reference to the "<html>" document
+
+                    // "evt.clientX": Horizontal position of mouse
+                    // "rect.left": Rest of canvas if the site has been scrolled to the right
+                    // "root.scrollLeft": How far the site has been scrolled to rhe right side of the screen
+                    var mouseX = evt.clientX - rect.left -root.scrollLeft;
+                    // "evt.clientY": Vertical position of mouse
+                    // "rect.top": Rest of canvas if the site has been scrolled downwards
+                    // "root.scrollTop": How far the site has been scrolled downwards
+                    var mouseY = evt.clientY - rect.top -root.scrollTop;
+
+                    paddleRightY = mouseY - (paddleHeight / 2);
+                }
+                // Main function
+                window.onload = function() {
+                    resizeCanvas();
+                    startGame();
+
+                    // Screen has to be clicked once in order to start the game (when the site gets loaded)
+                    if (!isPlaying)
+                    {
+                        canvas.addEventListener("click", function() {
+                            isPlaying = true;
+                            var startScreen = document.getElementById("startScreen");
+                            startScreen.style.display = "none";
+                        });
+                    }
+
+                    setInterval(drawCanvas, 1);
+                    // Calls the function "getMousePosition" when the mouse is moved
+                    canvas.addEventListener("mousemove", getMousePosition);
+                };
+
+                // Resizes the canvas depending on the screen resolution
+                function resizeCanvas() {
+                    // Sets the canvas width and height to the users viewport
+                    context.canvas.width = document.body.clientWidth;
+                    context.canvas.height = document.body.clientHeight;
+
+                    // Ball
+                    ballRadius = (canvas.width * canvas.height) * ballRadiusValue;
+                    ballX = (canvas.width / 2) - (ballRadius / 2); // Center of canvas width
+                    ballY = (canvas.height / 2) - (ballRadius / 2); // center of canvas height
+
+                    // Paddles
+                    paddleWidth = canvas.width * paddleWidthValue;
+                    paddleHeight = canvas.height * paddleHeightValue;
+
+                    // Left Paddle
+                    paddleLeftX = canvas.width * paddleMargin;
+                    paddleLeftY = (canvas.height / 2) - (paddleHeight / 2); // Centers, center of paddle to height of canvas
+
+                    // Right Paddle
+                    paddleRightX = canvas.width - ((canvas.width * paddleWidthValue) + (canvas.width * paddleMargin));
+                    paddleRightY = (canvas.height / 2) - (paddleHeight / 2); // Centers, center of paddle to height of canvas
+
+                    resizeSettings();
+                }
+                // Draws everything that's displayed on the canvas
+                function drawCanvas() {
+                    background();
+                    paddleLeft();
+                    paddleRight();
+                    ball();
+                    ballMovement();
+                }
+                function background() {
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+                    context.fillStyle = "transparent";
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Toggles sound
+                    var volumeIcon = document.getElementById("volume");
+                    var xIcon = document.getElementById("x");
+                    volumeIcon.onclick = function () {
+                        if (volume) // When volume is on
+                        {
+                            xIcon.style.visibility = "visible";
+                            volume = false;
+                        }
+                        else // When volume is off
+                        {
+                            xIcon.style.visibility = "hidden";
+                            volume = true;
+                        }
+                    };
+                    // Can't click "volumeIcon" when "xIcon" is visible, so "xIcon" also needs a click event
+                    xIcon.onclick = function () {
+                        xIcon.style.visibility = "hidden";
+                        volume = true;
+                    }
+                }
+                // Bot
+                function paddleLeft() {
+                    context.fillStyle = "red";
+                    context.fillRect(paddleLeftX, paddleLeftY, paddleWidth, paddleHeight);
+
+                    var botSpeed = document.getElementById("botSpeed");
+                    var botSpeedValue = document.getElementById("botSpeedValue");
+                    var difficulty = document.getElementById("difficulty");
+                    var difficultyValue = document.getElementById("difficultyValue");
+
+                    if (!isMovingSlider_BotSpeed)
+                    {
+                        // Sets the "botSpeed" value
+                        botSpeed.addEventListener("change", function () {
+                            isMovingSlider_BotSpeed = true;
+                            if (botSpeed.value < 2.5)
+                            {
+                                // For every step the slider gets moved below 2.5, subtract 0.5 from "speed"
+                                speed = 2.5;
+                                speed -= (2.5 - botSpeed.value);
+                            }
+                            else if (botSpeed.value > 2.5)
+                            {
+                                // For every step the slider gets moved above 2.5, add 0.5 to "speed"
+                                speed = 2.5;
+                                speed += (botSpeed.value - 2.5);
+                            }
+                            else if (botSpeed.value == 2.5)
+                            {
+                                speed = 2.5;
+                            }
+                        });
+                        isMovingSlider_BotSpeed = false;
+                    }
+                    botSpeedValue.innerHTML = botSpeed.value; // Displays the value of "botSpeed"
+
+                    // Sets the "difficulty" value
+                    if (difficulty.value < 5)
+                    {
+                        // For every "int" the "difficulty.value" is above 5, add 0.5 to "angle"
+                        angle = 5;
+                        angle += (5 - difficulty.value) / 2;
+                    }
+                    else if (difficulty.value > 5)
+                    {
+                        // For every "int" the "difficulty.value" is below 5, subtract 0.5 from "angle"
+                        angle = 5;
+                        angle -= (difficulty.value - 5) / 2;
+                    }
+                    else if (difficulty.value == 5)
+                    {
+                        angle = difficulty.value;
+                    }
+                    difficultyValue.innerHTML = difficulty.value; // Displays the value of "difficulty"
+
+                    var paddleLeftCenter = paddleLeftY + (paddleHeight / 2);
+                    // How fast and at what angle the bot follows the ball
+                    if (paddleLeftCenter < ballY - (paddleHeight / angle) && (paddleLeftY + paddleHeight) <= canvas.height) // Paddle is above ball
+                    {
+                        paddleLeftY += speed; // Moves the paddle down
+                    }
+                    else if (paddleLeftCenter > ballY + (paddleHeight / angle) && paddleLeftY >= 0) // Paddle is below ball
+                    {
+                        paddleLeftY -= speed; // Moves the paddle up
+                    }
+                }
+                // Player
+                function paddleRight() {
+                    context.fillStyle = "blue";
+                    context.fillRect(paddleRightX, paddleRightY, paddleWidth, paddleHeight);
+                }
+                function ballMovement() {
+                    // Starts the ball when "isPlaying" is set to "true"
+                    if (isPlaying)
+                    {
+                        // Initial speed
+                        ballX += ballSpeedX;
+                        ballY += ballSpeedY;
+                    }
+
+                    var BallSpeed = document.getElementById("ballSpeed");
+                    var ballSpeedValue = document.getElementById("ballSpeedValue");
+
+                    if (!isMovingSlider_BallSpeed)
+                    {
+                        // Sets the "ballSpeed" value
+                        BallSpeed.addEventListener("change", function () {
+                            isMovingSlider_BallSpeed = true;
+                            if (BallSpeed.value < 3)
+                            {
+                                // For every step the slider gets moved below 3, subtract 0.75 from "ballSpeed"
+                                ballSpeed = 3.75;
+                                ballSpeed -= (3 - BallSpeed.value) * .625;
+                            }
+                            else if (BallSpeed.value > 2.5)
+                            {
+                                // For every step the slider gets moved above 3, add 0.75 from "ballSpeed"
+                                ballSpeed = 3.75;
+                                ballSpeed += (BallSpeed.value - 3) * .625;
+                            }
+                            else if (BallSpeed.value == 3)
+                            {
+                                ballSpeed = 3.75;
+                            }
+                        });
+                        isMovingSlider_BallSpeed = false;
+                    }
+                    ballSpeedValue.innerHTML = BallSpeed.value; // Displays the value of "ballSpeed"
+                }
+                function ball() {
+                    context.fillStyle = "white";
+                    context.beginPath();
+                    context.arc(ballX, ballY, ballRadius, 0, Math.PI * 2, true);
+                    context.fill();
+
+                    // Collision with border
+                    if (ballX + ballRadius <= 0 ) // Left side
+                    {
+                        backgroundAnimation();
+                        scorePlayer++;
+                        resetBall();
+                    }
+                    else if (ballX - ballRadius >= canvas.width) // Right side
+                    {
+                        backgroundAnimation();
+                        scoreBot++;
+                        resetBall();
+                    }
+                    if (ballY - ballRadius <= 0) // Top
+                    {
+                        backgroundAnimation();
+                        ballSpeedY = -ballSpeedY;
+                    }
+                    else if (ballY + ballRadius >= canvas.height) // Bottom
+                    {
+                        backgroundAnimation();
+                        ballSpeedY = -ballSpeedY;
+                    }
+
+                    // Collision with left paddle
+                    var paddleLeft_Top = paddleLeftY;
+                    var paddleLeft_Bottom = paddleLeftY + paddleHeight;
+                    var paddleLeft_Right = paddleLeftX + paddleWidth;
+                    var paddleLeft_Left = paddleLeftX;
+                    if (ballY > paddleLeft_Top    && // Above paddle
+                        ballY < paddleLeft_Bottom && // Below paddle
+                        ballX < paddleLeft_Right  && // Left side of paddle
+                        ballX > paddleLeft_Left      // Right side of paddle
+                    )
+                    {
+                        backgroundAnimation();
+                        ballSpeedX = -ballSpeedX;
+
+                        // How far the ball hits from the center of the paddle
+                        var paddleLeft_Center = paddleLeftY + (paddleHeight / 2);
+                        var paddleLeft_DistanceFromPaddle = ballY - paddleLeft_Center;
+                        if (paddleLeft_DistanceFromPaddle < 0) // Ball hits above center of paddle
+                        {
+                            ballSpeedX -= paddleLeft_DistanceFromPaddle * .09375;
+                        }
+                        else if (paddleLeft_DistanceFromPaddle > 0) // Ball hits below center of paddle
+                        {
+                            ballSpeedX += paddleLeft_DistanceFromPaddle * .09375;
+                        }
+                        ballSpeedY = paddleLeft_DistanceFromPaddle * .1875;
+                    }
+                    // Collision with right paddle
+                    var paddleRight_Top = paddleRightY;
+                    var paddleRight_Bottom = paddleRightY + paddleHeight;
+                    var paddleRight_Right = paddleRightX + paddleWidth;
+                    var paddleRight_Left = paddleRightX;
+                    if (ballY > paddleRight_Top    && // Above paddle
+                        ballY < paddleRight_Bottom && // Below paddle
+                        ballX < paddleRight_Right  && // Left side of paddle
+                        ballX > paddleRight_Left      // Right side of paddle
+                    )
+                    {
+                        backgroundAnimation();
+                        ballSpeedX = -ballSpeedX;
+
+                        // How far the ball hits from the center of the paddle
+                        var paddleRight_Center = paddleRightY + (paddleHeight / 2);
+                        var paddleRight_DistanceFromPaddle = ballY - paddleRight_Center;
+                        if (paddleRight_DistanceFromPaddle < 0) // Ball hits above center of paddle
+                        {
+                            ballSpeedX += paddleRight_DistanceFromPaddle * .09375;
+                        }
+                        else if (paddleRight_DistanceFromPaddle > 0) // Ball hits below center of paddle
+                        {
+                            ballSpeedX -= paddleRight_DistanceFromPaddle * .09375;
+                        }
+                        ballSpeedY = paddleRight_DistanceFromPaddle * .0625;
+                    }
+                }
+                // Moves the ball in a random direction on game start
+                function startGame() {
+                    // Sets the score
+                    player.innerHTML = scorePlayer;
+                    bot.innerHTML = scoreBot;
+
+                    ballSpeedX = ballSpeed;
+                    ballSpeedY = ballSpeed;
+
+                    var random1 = Math.random();
+                    var random2 = Math.random();
+
+                    if (random1 <= .5) // Move ball to the right
+                    {
+                        ballSpeedX = ballSpeedX;
+                    }
+                    else if (random1 <= 1) // Move ball to the left
+                    {
+                        ballSpeedX = -ballSpeedX;
+                    }
+                    if (random2 <= .5) // Moves ball down
+                    {
+                        ballSpeedY = ballSpeedY;
+                    }
+                    else if (random2 <= 1) // Moves ball up
+                    {
+                        ballSpeedY = -ballSpeedY;
+                    }
+                }
+                // Resets the ball to its original position
+                function resetBall() {
+                    ballX = canvas.width / 2;
+                    ballY = canvas.height / 2;
+                    startGame();
+                }
+                // Background animations for the "#body" element
+                function backgroundAnimation() {
+                    var background = document.getElementById("body");
+                    var circle = document.getElementById("circle");
+
+                    if (ballX + ballRadius < 0) // When player player scores a goal
+                    {
+                        // Plays the sound, when it's turned on
+                        var goalPlayer = document.getElementById("goalPlayer");
+                        if (volume)
+                        {
+                            goalPlayer.play();
+                        }
+
+                        background.classList.toggle("playerAnimation");
+                        setTimeout(function () {
+                            background.classList.toggle("playerAnimation"); // Toggles the animation again after .5s, to reset it
+
+                        }, 500);
+                    }
+                    else if (ballX - ballRadius > canvas.width) // When bot scores a goal
+                    {
+                        // Plays the sound, when it's turned on
+                        var goalBot = document.getElementById("goalBot");
+                        if (volume)
+                        {
+                            goalBot.play();
+                        }
+
+                        background.classList.toggle("botAnimation");
+                        setTimeout(function () {
+                            background.classList.toggle("botAnimation"); // Toggles the animation again after .5s, to reset it
+
+                        }, 500);
+                    }
+                    else // On ball collision
+                    {
+                        // Plays the sound, when it's turned on
+                        var hitSound = document.getElementById("pongSound");
+                        if (volume)
+                        {
+                            hitSound.play();
+                        }
+                    }
+                }
+                // Resizes the "settings" div, on window resize
+                function resizeSettings() {
+                    var body = document.querySelector("body");
+                    var bodyWidth = body.clientWidth;
+                    var bodyHeight = body.clientHeight;
+                    var bodySurface = bodyWidth * bodyHeight; // Surface area of "body"
+                    var settings = document.getElementById("settings");
+                    var settingsWidth = settings.clientWidth;
+                    var settingsHeight = settings.clientHeight;
+                    var settingsSurface = settingsWidth * settingsHeight; // Surface area of "settings"
+
+                    var scale = 1 - (((100 / bodySurface) * settingsSurface) / 100);
+
+                    settings.style.transform = "translateX(" + -50 + "%) scale(" + scale + ")";
+                }
+            </script>
+        </section>
+    </body>
+</html>
